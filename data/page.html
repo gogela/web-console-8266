@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<pre id="log"></pre>
+<script>
+  // helper function: log message to screen
+  function log(msg) {
+    document.getElementById('log').textContent += '<i>'+ msg +'</i>' + '\n';
+  }
+  function localecho(msg) {
+    document.getElementById('log').textContent += msg
+  }
+  function printdata(msg){
+    document.getElementById('log').textContent += msg;
+}
+
+  // setup websocket with callbacks
+//  var ws = new WebSocket('ws://localhost:8080/');
+//  var ws = new WebSocket('ws://192.168.123.40/websocket/ws.cgi');
+  var ws = new WebSocket('ws://192.168.123.40:81');
+  ws.onopen = function() {
+    log('CONNECT');
+  };
+  ws.onclose = function() {
+    log('DISCONNECT');
+  };
+  ws.onmessage = function(event) {
+    printdata( event.data);
+  };
+
+//creates a listener for when you press a key
+window.onkeyup = keyup;
+
+//creates a global Javascript variable
+var inputTextValue;
+
+function keyup(e) {
+  //setting your input text to the global Javascript Variable for every key press
+    var evtobj=window.event? event : e; //distinguish between IE's explicit event object (window.event) and Firefox's implicit.
+    var unicode=evtobj.charCode? evtobj.charCode : evtobj.keyCode;
+    if (unicode == 13) //enter
+    {
+     ws.send(inputTextValue+"\n");
+     inputTextValue="";
+     localecho("\n");
+    }
+    var actualkey= evtobj.shiftKey? String.toUpperCase(String.fromCharCode(unicode)):String.toLowerCase(String.fromCharCode(unicode));
+    inputTextValue+=actualkey;
+    localecho(actualkey);
+
+  //listens for you to press the ENTER key, at which point your web address will change to the one you have input in the search box
+ // if (e.keyCode == 13) {
+ //   window.location = "http://www.myurl.com/search/" + inputTextValue;
+ // }
+}
+</script>

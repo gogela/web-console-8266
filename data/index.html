@@ -1,0 +1,267 @@
+<!DOCTYPE HTML>
+<html>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="stylesheet" href="wicon.css">
+
+<head>
+    <title>Web serial console</title>
+    <script>
+        var uploader;
+        var dimmer;
+        var storageMode;
+        var uploadFile
+
+        function openWin() {
+            window.open("websock.html");
+        }
+
+        function launchUploader(mode) {
+            storageMode = mode;
+            uploader = document.getElementById("uploader");
+            dimmer = document.createElement("div");
+            dimmer.style.width = window.innerWidth + 'px';
+            dimmer.style.height = window.innerHeight + 'px';
+            dimmer.className = 'dimmer';
+            dimmer.onclick = closeUploader;
+            document.body.appendChild(dimmer);
+            uploader.style.visibility = 'visible';
+            uploader.style.top = window.innerHeight / 2 - 50 + 'px';
+            uploader.style.left = window.innerWidth / 2 - 100 + 'px';
+            document.getElementById("button-upload").disabled = true;
+            return false;
+        }
+
+        function closeUploader() {
+            document.body.removeChild(dimmer);
+            uploader.style.visibility = 'hidden';
+            storageMode = undefined;
+            uploadFile = undefined;
+            document.getElementById("button-upload").disabled = true;
+            document.getElementById("file-for-upload").innerHTML = "nothing selected";
+        }
+
+        function updateUploader() {
+            uploadFile = document.getElementById("file-upload").files[0];
+            document.getElementById("file-for-upload").innerHTML = uploadFile.name + " >>> " + storageMode;
+            document.getElementById("button-upload").disabled = false;
+        }
+
+        function runUploader() {
+            if (storageMode != "SPIFS" && storageMode != "SD") {
+                alert("unknown storage:" + storageMode);
+                closeUploader();
+                return;
+            }
+            var xhttp = new XMLHttpRequest();
+            var fd = new FormData();
+            xhttp.onreadystatechange = function () {
+                if (xhttp.readyState == 4 && xhttp.status == 200) {
+                    if (storageMode = "SPIFS") getFiles('SPIFS'); //refresh the list after upload
+                    if (storageMode = "SD") getFiles('SD'); //refresh the list after upload
+                    closeUploader();
+                };
+            }
+            if (storageMode == "SPIFS") xhttp.open("POST", "/spifsupload", true);
+            if (storageMode == "SD") xhttp.open("POST", "/sdupload", true);
+            fd.append("upload_file", uploadFile);
+            xhttp.send(fd);
+        }
+
+        function setSerial() {
+            var xhttp = new XMLHttpRequest();
+            var debug = "";
+            if (document.forms['setserial'].elements['debug'].checked) debug = "&debug=true";
+            xhttp.open("GET", "/setserial?baudrate=" + document.forms['setserial'].elements['baudrate'].value + debug, false);
+            xhttp.send();
+        }
+
+        function getFiles(mode) { //mode is "SPIFS" or "SD"
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (xhttp.readyState == 4 && xhttp.status == 200) {
+                    var parsed = JSON.parse(xhttp.responseText);
+                    var tabid = (mode == 'SPIFS') ? "SPIfilelisttable" : "SDfilelisttable";
+                    var table = document.getElementById(tabid);
+                    var rows = table.rows.length;
+                    for (i = 0; i < rows; i++) {
+                        table.deleteRow(0); //clean old stuff in table
+                    }
+                    for (i = 0; i < parsed.length; i++) {
+                        row = table.insertRow(-1);
+                        cell1 = row.insertCell(0);
+                        cell2 = row.insertCell(1);
+                        cell3 = row.insertCell(2);
+                        //cell1.innerHTML = parsed[i].type;
+                        //cell2.innerHTML = parsed[i].name;
+                        cell1.innerHTML = parsed[i].type;
+                        if (mode == 'SPIFS') cell2.innerHTML = "<a href=\"" + parsed[i].name + "\" download>" + parsed[i].name + "</a>";
+                        else cell2.innerHTML = "<a href=\"/SDMOUNT/" + parsed[i].name + "\" download>" + parsed[i].name + "</a>";
+                        deleteButton = document.createElement("BUTTON");
+                        delText = document.createTextNode("\u2717");
+                        if (mode == 'SPIFS') deleteButton.addEventListener("click", function () {
+                            deleteFile('SPIFS', this);
+                        });
+                        else deleteButton.addEventListener("click", function () {
+                            deleteFile('SD', this);
+                        });
+                        deleteButton.appendChild(delText);
+                        deleteButton.className = "smallbtn delbtn";
+                        deleteButton.title = "delete";
+                        deleteButton.id = "DELETE_" + parsed[i].name;
+                        cell3.appendChild(deleteButton);
+                    }
+                }
+            };
+            if (mode == 'SPIFS') xhttp.open("GET", "/spifslist?dir=/", true);
+            else xhttp.open("GET", "/sdlist?dir=/", true);
+            xhttp.send();
+        }
+
+        function deleteFile(mode, buttonRef) { //mode is 'SPIFS' or 'SD'
+            var filename = buttonRef.id;
+            if (!filename.startsWith("DELETE_")) return;
+            filename = filename.substr(7, filename.length);
+            if (confirm("Delete " + filename + "?")) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function () {
+                    if (xhttp.readyState == 4 && xhttp.status == 200) {
+                        getFiles(mode); //refresh the list after delete
+                    }
+                    if (xhttp.status == 500) alert('failed');
+                };
+                if (mode == 'SPIFS') xhttp.open("DELETE", "/spifsdelete?path=/" + filename, true);
+                else xhttp.open("DELETE", "/sddelete?path=" + filename, true);
+                xhttp.send();
+            }
+        }
+
+        function SDmount() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                //enable buttons
+                if (xhttp.readyState == 4 && xhttp.status == 200) {
+                    document.getElementById("SDdirButton").disabled = false;
+                    document.getElementById("SDuploadButton").disabled = false;
+                    document.getElementById("SDunmountButton").disabled = false;
+                    document.getElementById("SDmountButton").disabled = true;
+                    //  document.getElementById("SDfileToUpload").disabled = false;
+                    getFiles('SD');
+                }
+                if (xhttp.readyState == 4 && xhttp.status == 500) alert('SD mount failed');
+            };
+            xhttp.open("GET", "/sdmount", true);
+            xhttp.send();
+        }
+
+        function SDunmount() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                //enable buttons
+                if (xhttp.readyState == 4 && xhttp.status == 200) {
+                    document.getElementById("SDdirButton").disabled = true;
+                    document.getElementById("SDuploadButton").disabled = true;
+                    document.getElementById("SDunmountButton").disabled = true;
+                    document.getElementById("SDmountButton").disabled = false;
+                    //  document.getElementById("SDfileToUpload").disabled = true;
+                    var table = document.getElementById("SDfilelisttable"); //delete table
+                    var rows = table.rows.length;
+                    for (i = 0; i < rows; i++) {
+                        table.deleteRow(0); //clean old stuff in table
+                    }
+                }
+                if (xhttp.status == 500) alert('unmount failed');
+            };
+            xhttp.open("GET", "/sdunmount", true);
+            xhttp.send();
+        }
+        window.onload = function () {
+            // populate accordion
+            var acc = document.getElementsByClassName("accordion");
+            var i;
+            for (i = 0; i < acc.length; i++) {
+                acc[i].onclick = function () {
+                    this.classList.toggle("active");
+                    this.nextElementSibling.classList.toggle("show");
+                }
+            }
+        };
+        getFiles('SPIFS');
+    </script>
+</head>
+
+<body>
+    <div id="uploader">
+        <label for="file-upload" class="consolebtn"> Choose file... </label>
+        <input id="file-upload" type="file" onchange="updateUploader()" />
+        <p id="file-for-upload">nothing selected</p>
+        <br>
+        <button type="button" id="button-upload" onclick="runUploader()" class="consolebtn">Upload</button>
+        <button type="button" id="button-upload-cancel" onclick="closeUploader()" class="consolebtn">Cancel</button>
+    </div>
+    <h2> WEB Serial console </h2>
+    <br>
+    <button type="button" onclick="openWin()" class="consolebtn">Launch console window &#9658</button>
+    <button type="button" onclick="launchUploader('test')" class="consolebtn"> &#8682</button>
+    <br>
+    <br>
+    <button class="accordion">&#9660 Serial line settings</button>
+    <div class="panel">
+        <label>
+        <form name="setserial" action="setserial" method="get">
+            <select name="baudrate">
+                <option value="9600">9600</option>
+                <option value="115200" selected>115200</option>
+                <option value="230400">230400</option>
+                <option value="250000">250000</option>
+                <option value="460800">460800</option>
+                <option value="921600">921600</option>
+                <option value="1000000">1000000</option>
+            </select> Baudrate (115200 default)
+            <BR>
+            <input type="checkbox" name="debug" value="debug"> Enable ESP8266 debug on serial port (may interfere with attached serial device)
+            <BR><BR>    
+            <input type="button" value="Set serial parameters" onclick="setSerial()"> </form>
+        <br>
+        
+        </label>
+    </div>
+    <BR>
+    <button class="accordion">&#9660 Internal files (SPIFS)</button>
+    <div class="panel">
+        <div class="wrap">
+            <button title="refresh list" onclick="getFiles('SPIFS')" class="smallbtn">&#8635</button>
+            <button title="upload new file" onclick="launchUploader('SPIFS')" class="smallbtn"> &#8682 </button>
+            <table class="head">
+                <tr>
+                    <th>type</th>
+                    <th>name</th>
+                    <th>actions</th>
+                </tr>
+            </table>
+            <div class="inner_table">
+                <table id="SPIfilelisttable"> </table>
+            </div>
+        </div>
+    </div>
+    <button class="accordion">&#9660 SD Card files</button>
+    <div class="panel">
+        <div class="wrap">
+            <button id="SDmountButton" title="Mount SD card - makes the card unavailable for printer. Do not attempt to mount the card while printers reads from it" onclick="SDmount()" class="smallbtn">Mount</button>
+            <button id="SDunmountButton" title="Unmount SD card - makes available for 3D printer" onclick="SDunmount()" class="smallbtn" disabled="true">Unmount</button>
+            <button id="SDdirButton" title="Refresh list" onclick="getFiles('SD')" class="smallbtn" disabled="true">&#8635</button>
+            <button id="SDuploadButton" title="Upload new file" onclick="launchUploader('SD')" class="smallbtn" disabled="true"> &#8682 </button>
+            <table class="head">
+                <tr>
+                    <th>type</th>
+                    <th>name</th>
+                    <th>actions</th>
+                </tr>
+            </table>
+            <div class="inner_table">
+                <table id="SDfilelisttable"> </table>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

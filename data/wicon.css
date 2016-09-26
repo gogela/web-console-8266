@@ -1,0 +1,191 @@
+body {
+    font: normal 12px Verdana, Arial, sans-serif;
+}
+
+textarea {
+    display: block;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2
+}
+
+th {
+    background-color: #69f;
+    color: white;
+}
+
+.wrap {
+    width: 502px;
+    border: 1px solid black;
+    border-radius: 5px;
+}
+
+.wrap table {
+    width: 500px;
+}
+
+table tr td {
+    padding: 5px;
+    border: 1px solid #eee;
+    width: 100px;
+    word-wrap: break-word;
+}
+
+table.head tr td {
+    background: #eee;
+}
+
+.inner_table {
+    height: 300px;
+    overflow-y: auto;
+}
+
+p {
+    display: block;
+    margin-top: 0em;
+    margin-bottom: 2px;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+p.statusline {
+    display: inline-block;
+    background-color: #d70;
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    //width: 50%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 12px;
+    transition: 0.4s;
+}
+
+label {
+    display: inline-block;
+    background-color: #69f;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    //width: 49%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 12px;
+    transition: 0.4s;
+}
+
+label.consolebtn ,button.consolebtn {
+    display: inline-block;
+    background-color: #69f;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    //width: 49%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 18px;
+    transition: 0.4s;
+}
+
+label.fake-button, button.smallbtn, button.sendbtn {
+    display: inline-block;
+   
+    background-color: #69f;
+    color: white;
+    cursor: pointer;
+    padding-right: 28px;
+    //width: 49%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 16px;
+    transition: 0.4s;
+}
+
+button.smallbtn:disabled{
+    background-color: #999;
+}
+
+button.sendbtn{
+ float: right;
+}
+
+button.delbtn{
+    color:firebrick;
+}
+
+label.consolebtn:hover, button.consolebtn:hover {
+    background-color: #58e;
+}
+
+button.accordion {
+    background-color: #69f;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    transition: 0.4s;
+}
+
+button.accordion.active,
+button.accordion:hover {
+    background-color: #58e;
+}
+
+div.panel {
+    padding: 0 18px;
+    display: none;
+    background-color: white;
+}
+
+div.panel.show {
+    display: block !important;
+}
+
+
+
+#uploader {
+    visibility: hidden;
+    position: absolute;
+    background: #fff;
+    border: 2px solid #69f;
+   
+    z-index: 100;
+    width: 200px;
+    height: 150px;
+    padding: 20px;
+}
+
+
+
+.dimmer {
+    background: #000;
+    position: absolute;
+    opacity: .5;
+    top: 0;
+    z-index: 99;
+}
+
+input[type="file"] {
+    display: none;
+}
+

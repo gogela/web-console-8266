@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>WebSocket console</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="wicon.css">
+    <script>
+        //
+        //*****  variables
+        //
+        var wsocket;
+        var wsocket_busy = false;
+        var queue = [];
+        //
+        // **** logging, output functions...
+        //
+        onerror = function (msg) { //error handle
+            log(msg);
+        }
+
+        function log(msg) { //log output
+            document.getElementById('log').appendChild(document.createTextNode(new Date() + '   ' + msg + '\n'));
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+        }
+
+        function cons(msg) { //console output
+            document.getElementById('console').appendChild(document.createTextNode(msg + '\n'));
+            document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+        }
+
+        function status(msg) { //set status field
+            log(msg);
+            document.getElementById('status').textContent = msg;
+        }
+
+        function enter(e) { //detect enter key
+            if (e.keyCode == 13 && document.getElementById("enterSubmit").checked) sendblock();
+        }
+        //
+        // **** Websockets functions
+        //
+        function connect() {
+            if (window.location.host == '') var url = "ws://192.168.123.43:81";
+            else var url = "ws://" + window.location.host + ":81";
+            wsocket = new WebSocket(url);
+            status('Connecting:' + url);
+            wsocket.onopen = function (event) { // handle for established connection
+                status('Connected');
+            };
+            wsocket.onmessage = function (event) { //handle incoming ws msg
+                if ((event.data instanceof ArrayBuffer) || (event.data instanceof Blob)) { //binary data, confirmation/ACK from server
+                    wsocket_busy = false;
+                    send();
+                }
+                else cons(event.data); //text data, print to console output textarea
+            };
+            wsocket.onclose = function (event) { //closed connection handler
+                status('Disconnected');
+            };
+        }
+
+        function disconnect() {
+            if (wsocket) {
+                wsocket.close();
+            }
+            else {
+                log('Not connected');
+            }
+        }
+
+        function sendblock() { //sending the input textarea to the queueueue
+            var text_split = document.getElementById('text').value.split(String.fromCharCode(10)); //split to lines
+            for (i = 0; i < text_split.length; i++) queue.push(text_split[i]); //push lines to queue
+            send();
+            document.getElementById('text').value = ''; //clean the input textarea
+        }
+
+        function send() { //sending from the queue
+            if (!queue.length == 0) { //something to send in queue
+                if (wsocket && !wsocket_busy) { //clear to send
+                    var tx = queue.shift(); //take line from queue
+                    wsocket.send(tx); //send it via websocket
+                    wsocket_busy = true; //set socket as busy
+                    if (document.getElementById("localEcho").checked) cons(tx); //echoing input (local echo)    
+                }
+                else {
+                    log('Not connected or socket busy');
+                }
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <p>
+        <button type="button" onclick="connect()" class="consolebtn">Connect to device &#9658</button>
+        <button type="button" onclick="disconnect()" class="consolebtn">Disconnect device &#9658</button>
+    </p>
+    <p class="statusline">Status: <span id="status">Disconnected</span></p>
+    <p>
+    <label  syle="display:block;">Send:
+            <textarea id="text" type="text" rows="4" cols="80" onkeypress="enter(event)"></textarea>
+            <br>
+            <input type=checkbox id="enterSubmit" value="true"> Enter sends data
+            <input type=checkbox id="localEcho" value="true"> Local echo 
+            <button type="button" onclick="sendblock()" class="sendbtn">Send &#9658</button>
+    </label>
+    <label syle="display:block;">Received:
+        <textarea id="console" type="text" rows="10" cols="80"></textarea>
+    </label>
+    <label  syle="display:block;">Log:
+        <textarea id="log" type="text" rows="5" cols="80"></textarea>
+    </label>
+</body>
+
+</html>
